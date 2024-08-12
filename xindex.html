@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html style="width: 100%; height: 100%;">
+
+<head></head>
+
+<body style="width: 100%; height: 100%; margin: 0px;">
+  <div style="width: 100%; height: 100%;"></div>
+  <script>
+    (async function () {
+      let ElementsMap = new Map();
+      ElementsMap.set(0, document.body.firstElementChild);
+      let Id = 1;
+      let set = (el) => {
+        let id = Id;
+        ElementsMap.set(id, el);
+        Id += 1;
+        return id;
+      }
+      let get = (id) => {
+        return ElementsMap.get(id) || null;
+      }
+      let getStr = (ptr) => {
+        if(ptr === 0) return "";
+        let mem = new Uint8Array(instance.exports.memory.buffer);
+        let chars = [];
+        while (mem[ptr] !== 0) {
+          chars.push(mem[ptr]);
+          ptr += 1;
+        }
+        let str = chars.map(it => String.fromCharCode(it)).join("");
+        return str;
+      }
+      let setStr = (str) => {
+        let mem = new Uint8Array(instance.exports.memory.buffer);
+        let ptr = instance.exports.malloc(str.length + 1);
+        for(let i = 0; i < str.length; i += 1){
+          mem[ptr + i] = str.charCodeAt(i);
+        }
+        mem[ptr + str.length] = "\0";
+        return ptr;
+      }
+      let EvalCode = new Map();
+      const { instance } = await WebAssembly.instantiateStreaming(fetch('./xbundle.wasm'), {
+        env: {
+          JS: (count, ptr)=>{ 
+            let mem = new Uint8Array(instance.exports.memory.buffer);
+            let getVal = (mem, out) => mem[out] + (mem[out + 1] << 8) + (mem[out + 2] << 16) + (mem[out + 3] << 24);
+            let args = [];
+            for(let i = 0; i < count - 1; i += 1){
+              args.push(getVal(mem, ptr));
+              ptr += 4
+            }
+            let strPtr = getVal(mem, ptr);
+            let fn = EvalCode.get(strPtr);
+            if(!fn){
+              let code = getStr(strPtr);
+              fn = Function("$", "return " + code)({get, set, getStr, setStr, instance});
+              EvalCode.set(strPtr, fn);
+            }
+            return fn(...args);
+          }
+        }
+      });
+      instance.exports.__wasm_call_ctors();
+      console.log(instance.exports);
+      console.log(instance.exports.main());
+    })()
+  </script>
+</body>
+
+</html>
