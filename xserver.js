@@ -2,7 +2,7 @@ let Buf = null;
 let compile = () => {
   console.log("\033c");
   console.log('--file changed');
-  const ls = require('child_process').spawn('clang-18', '-std=c++23 -O3 --target=wasm32 -nostdlib -Wl,--no-entry -Wl,--export-all -Wl,--allow-undefined -Wno-unused-command-line-argument -Wno-string-compare -g3 -gdwarf-5 -o - xindex.cpp'.split(' '));
+  const ls = require('child_process').spawn('clang-18', '-std=c++23 -O0 --target=wasm32 -fwasm-exceptions -nostdlib -Wl,--no-entry -Wl,--export-all -Wl,--allow-undefined -Wno-unused-command-line-argument -Wno-string-compare -g3 -gdwarf-5 -o - xindex.cpp'.split(' '));
   let buf = Buffer.alloc(0);
   ls.stdout.on('data', (chunk) => buf = Buffer.concat([buf, chunk]));
   ls.stderr.on('data', (data) => console.error(data.toString()));

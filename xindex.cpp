@@ -407,7 +407,36 @@ $Frame& App(){
     );
 }
 
+
+//try-catch example - without stdlib deps it supports only catch(...)-handler but you can save error object into global variable
+//stubs for try-catch
+extern "C" void __cxa_rethrow() { __builtin_wasm_throw(0, 0); }
+extern "C" void __cxa_begin_catch(){}
+extern "C" void __cxa_end_catch(){}
+void operator delete(void*) noexcept {}
+
+auto err = 0;
+auto func2(auto flag){
+  if(flag){
+    err = 111;
+    throw;
+  } else {
+    return 222;
+  }
+}
+
+auto func(auto flag){
+  try {
+    return func2(true);
+  } catch(...){
+    return err;
+  }
+}
+
 int main() {
+  auto val = func(false);
+  js(val, "(val)=>console.log('try-catch works', val)");
+
   js(new Listener(new auto([](){
     AppState->windowWidth = js("()=>window.innerWidth");
     AppState->windowHeight = js("()=>window.innerHeight");
